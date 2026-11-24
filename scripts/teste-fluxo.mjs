@@ -119,6 +119,10 @@ const comEsgotado = await api('/api/pedidos', json({ cliente, itens: [{ ...itemC
 verificar(comEsgotado.status === 409, 'modelo esgotado é recusado (409)');
 const invalido = await api('/api/pedidos', json({ cliente: { ...cliente, telefone: '12' }, itens: [itemCatalogo] }, token));
 verificar(invalido.status === 400, 'telefone inválido é recusado (400)');
+for (const [telefone, motivo] of [['(91) 3333-4444', 'fixo/sem o 9'], ['(91) 9918-4188', 'incompleto'], ['(00) 99184-1888', 'DDD inválido']]) {
+  const r = await api('/api/pedidos', json({ cliente: { ...cliente, telefone }, itens: [itemCatalogo] }, token));
+  verificar(r.status === 400, `telefone ${motivo} é recusado (400)`);
+}
 
 const ped = await api('/api/pedidos', json({ cliente, itens: [itemCatalogo, itemPers, itemSobMedida] }, token));
 verificar(ped.status === 201 && /^[A-Z0-9]{4}-[A-Z0-9]{3}$/.test(ped.corpo.codigo), 'POST /api/pedidos cria pedido', ped.corpo);

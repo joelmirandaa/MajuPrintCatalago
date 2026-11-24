@@ -3,8 +3,7 @@ import { formatarCentavos, textoParaCentavos } from '../src/compartilhado/dinhei
 import { esquemaPedido } from '../src/compartilhado/esquemas';
 import { resolucaoSuficiente } from '../src/compartilhado/qualidade';
 import { ehNavegadorInterno, linkIntentChrome } from '../src/app/util/instagram';
-import { mascararTelefone } from '../src/app/util/telefone';
-import { formatarTelefone, montarLinkWhatsapp, montarMensagem } from '../src/worker/servicos/whatsapp';
+import { montarLinkWhatsapp, montarMensagem } from '../src/worker/servicos/whatsapp';
 import { gerarCodigoPedido, sanitizarNomeArquivo } from '../src/worker/utils/ids';
 
 const nbsp = (s: string) => s.replace(/ /g, ' ');
@@ -86,9 +85,6 @@ describe('whatsapp', () => {
   it('gera link wa.me codificado', () => {
     expect(montarLinkWhatsapp('+55 (91) 90000-0000', 'Olá & tchau')).toBe('https://wa.me/5591900000000?text=Ol%C3%A1%20%26%20tchau');
   });
-  it('formata telefone', () => {
-    expect(formatarTelefone('9133334444')).toBe('(91) 3333-4444');
-  });
 });
 
 describe('ids', () => {
@@ -111,9 +107,5 @@ describe('front-end', () => {
     expect(linkIntentChrome(new URL('https://loja.dev/modelo/3?x=1'))).toMatch(
       /^intent:\/\/loja\.dev\/modelo\/3\?x=1#Intent;scheme=https;package=com\.android\.chrome;S\.browser_fallback_url=https%3A%2F%2Floja\.dev%2Fmodelo%2F3%3Fx%3D1;end$/,
     );
-  });
-  it('mascara telefone', () => {
-    expect(mascararTelefone('91912345678')).toBe('(91) 91234-5678');
-    expect(mascararTelefone('9133')).toBe('(91) 33');
   });
 });

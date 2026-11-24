@@ -9,7 +9,8 @@ import { Alerta } from '../componentes/Alerta';
 import { Botao } from '../componentes/Botao';
 import { Carregando, EstadoErro } from '../componentes/Estados';
 import { formatarBytes } from '../util/imagem';
-import { linkWhatsappCliente, mascararTelefone } from '../util/telefone';
+import { formatarTelefone } from '../../compartilhado/telefone';
+import { linkWhatsappCliente } from '../util/telefone';
 import { useCarregar } from '../util/useCarregar';
 import { COR_STATUS, ROTULO_STATUS, formatarData } from './rotulos';
 
@@ -133,7 +134,7 @@ export default function Pedido() {
               Cliente
             </h2>
             <p className="text-lg font-bold text-secundaria">{pedido.nome}</p>
-            <p>{mascararTelefone(pedido.telefone)}</p>
+            <p>{formatarTelefone(pedido.telefone)}</p>
             <p className="whitespace-pre-line text-texto-suave">{pedido.endereco}</p>
             <p>
               <strong>Pagamento:</strong> {pedido.pagamento === 'pix' ? 'Pix' : 'Cartão'}

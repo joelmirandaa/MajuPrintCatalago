@@ -1,4 +1,5 @@
 // Mensagem do pedido e link wa.me (estrutura.md, seção 9).
+import { formatarTelefone } from '../../compartilhado/telefone';
 import { formatarCentavos } from '../utils/dinheiro';
 
 export interface DadosMensagem {
@@ -19,14 +20,6 @@ export interface DadosMensagem {
     descricao?: string | null;
   }[];
   linkPainel: string;
-}
-
-/** (91) 91234-5678 — aceita números com ou sem o 55. */
-export function formatarTelefone(digitos: string): string {
-  const d = digitos.startsWith('55') && digitos.length > 11 ? digitos.slice(2) : digitos;
-  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
-  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
-  return digitos;
 }
 
 export function montarMensagem(d: DadosMensagem): string {

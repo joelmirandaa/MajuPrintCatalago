@@ -1,6 +1,7 @@
 // Esquemas Zod de toda entrada da API (estrutura.md, seção 11: limites).
 import { z } from 'zod';
 import { LIMITE_CM, mensagemLimite, OPCOES_MODELO } from './personalizado';
+import { digitosCelular, validarCelular } from './telefone';
 
 export const LIMITES = {
   bytesPorFoto: 25 * 1024 * 1024,
@@ -75,10 +76,17 @@ export function uploadsDoItem(item: z.infer<typeof esquemaItemPedido>): string[]
   return item.uploadIdReferencia ? [item.uploadIdCliente, item.uploadIdReferencia] : [item.uploadIdCliente];
 }
 
+/** Celular no formato (DD) 9XXXX-XXXX; sai normalizado só com os 11 dígitos. */
 export const esquemaTelefone = z
   .string()
-  .transform((v) => v.replace(/\D/g, ''))
-  .pipe(z.string().regex(/^\d{10,13}$/, 'Informe um WhatsApp válido com DDD'));
+  .superRefine((v, ctx) => {
+    // Recusa mais de 11 dígitos (exceto o 55 do país) em vez de cortar em silêncio.
+    const brutos = v.replace(/\D/g, '');
+    const semPais = brutos.length > 11 && brutos.startsWith('55') ? brutos.slice(2) : brutos;
+    const erro = semPais.length > 11 ? 'Número com dígitos demais' : validarCelular(v);
+    if (erro) ctx.addIssue({ code: 'custom', message: erro });
+  })
+  .transform(digitosCelular);
 
 export const esquemaCliente = z.object({
   nome: textoObrigatorio(120, 'Informe seu nome'),
@@ -160,10 +168,16 @@ export const esquemaPrecos = z.object({
 
 export const esquemaConfig = z.object({
   nome_loja: textoObrigatorio(80, 'Informe o nome da loja'),
-  whatsapp_numero: z
-    .string()
-    .transform((v) => v.replace(/\D/g, ''))
-    .pipe(z.string().regex(/^(\d{12,13})?$/, 'Use o formato com país e DDD, ex.: 5591912345678')),
+  // Vazio (sem número) ou celular válido; gravado como 55 + DDD + número para o link wa.me.
+  whatsapp_numero: z.string().transform((v, ctx) => {
+    if (v.replace(/\D/g, '') === '') return '';
+    const r = esquemaTelefone.safeParse(v);
+    if (!r.success) {
+      ctx.addIssue({ code: 'custom', message: r.error.issues[0]?.message ?? 'Número inválido' });
+      return z.NEVER;
+    }
+    return `55${r.data}`;
+  }),
   texto_boas_vindas: texto(500),
   aviso_qualidade: texto(500),
 });

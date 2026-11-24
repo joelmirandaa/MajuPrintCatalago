@@ -1,5 +1,6 @@
-import { useId, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react';
+import { useId, useState, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react';
 import { WarningCircle } from '@phosphor-icons/react';
+import { EXEMPLO_CELULAR, mascararCelular, validarCelular } from '../../compartilhado/telefone';
 
 interface Base {
   rotulo: string;
@@ -70,5 +71,51 @@ export function AreaTexto({
       />
       <Mensagens id={id} erro={erro} ajuda={ajuda} />
     </div>
+  );
+}
+
+/**
+ * Campo de celular padrão do sistema: máscara (DD) 9XXXX-XXXX enquanto digita, só números,
+ * no máximo 11 dígitos e validação ao sair do campo. `valor` é o texto mascarado.
+ * Use `digitosCelular` (compartilhado/telefone) ou os esquemas Zod para obter só os dígitos.
+ */
+export function CampoCelular({
+  rotulo,
+  valor,
+  aoMudar,
+  erro,
+  ajuda,
+  className = '',
+  autoComplete = 'tel-national',
+}: {
+  rotulo: string;
+  valor: string;
+  aoMudar: (mascarado: string) => void;
+  erro?: string | null;
+  ajuda?: ReactNode;
+  className?: string;
+  autoComplete?: string;
+}) {
+  const [erroLocal, setErroLocal] = useState<string | null>(null);
+  return (
+    <Campo
+      rotulo={rotulo}
+      type="tel"
+      inputMode="numeric"
+      autoComplete={autoComplete}
+      placeholder={EXEMPLO_CELULAR}
+      value={valor}
+      onChange={(e) => {
+        const mascarado = mascararCelular(e.target.value);
+        aoMudar(mascarado);
+        // Some o erro assim que o número fica válido.
+        if (erroLocal && !validarCelular(mascarado)) setErroLocal(null);
+      }}
+      // Vazio só é cobrado no envio do formulário; aqui avisamos sobre número incompleto ou inválido.
+      onBlur={() => setErroLocal(valor === '' ? null : validarCelular(valor))}
+      erro={erro ?? erroLocal}
+      ajuda={ajuda}
+      className={className}
+    />
   );
 }

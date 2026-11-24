@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { mascararCelular, validarCelular } from '../../compartilhado/telefone';
 import type { ConfigCompleta } from '../../compartilhado/tipos';
 import { admin } from '../api';
 import { Alerta } from '../componentes/Alerta';
 import { Botao } from '../componentes/Botao';
-import { AreaTexto, Campo } from '../componentes/Campo';
+import { AreaTexto, Campo, CampoCelular } from '../componentes/Campo';
 import { Carregando, EstadoErro } from '../componentes/Estados';
 import { useCarregar } from '../util/useCarregar';
 
@@ -12,9 +13,13 @@ export default function Config() {
   const [form, setForm] = useState<ConfigCompleta | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [mensagem, setMensagem] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null);
+  const [erroWhatsapp, setErroWhatsapp] = useState<string | null>(null);
+
+  // O número é gravado como 55 + DDD + celular; no formulário ele aparece mascarado, sem o 55.
+  const carregarForm = (c: ConfigCompleta) => setForm({ ...c, whatsapp_numero: mascararCelular(c.whatsapp_numero) });
 
   useEffect(() => {
-    if (dados) setForm(dados);
+    if (dados) carregarForm(dados);
   }, [dados]);
 
   if (carregando && !form) return <Carregando />;
@@ -23,10 +28,13 @@ export default function Config() {
   async function salvar(e: FormEvent) {
     e.preventDefault();
     if (!form) return;
+    const erroNumero = form.whatsapp_numero ? validarCelular(form.whatsapp_numero) : null;
+    setErroWhatsapp(erroNumero);
+    if (erroNumero) return;
     setSalvando(true);
     setMensagem(null);
     try {
-      setForm(await admin.salvarConfig(form));
+      carregarForm(await admin.salvarConfig(form));
       setMensagem({ tipo: 'sucesso', texto: 'Configurações salvas!' });
     } catch (erro) {
       setMensagem({ tipo: 'erro', texto: erro instanceof Error ? erro.message : 'Erro ao salvar' });
@@ -40,13 +48,16 @@ export default function Config() {
       <h1>Configurações</h1>
       <form onSubmit={salvar} className="cartao space-y-4 p-4 md:p-6">
         <Campo rotulo="Nome da loja" value={form.nome_loja} maxLength={80} onChange={(e) => setForm({ ...form, nome_loja: e.target.value })} />
-        <Campo
+        <CampoCelular
           rotulo="WhatsApp que recebe os pedidos"
-          inputMode="tel"
-          placeholder="5591912345678"
-          ajuda="Com código do país (55) e DDD, só números."
-          value={form.whatsapp_numero}
-          onChange={(e) => setForm({ ...form, whatsapp_numero: e.target.value.replace(/\D/g, '') })}
+          autoComplete="off"
+          ajuda="Celular com DDD. O código do Brasil (55) é adicionado automaticamente."
+          valor={form.whatsapp_numero}
+          aoMudar={(v) => {
+            setForm({ ...form, whatsapp_numero: v });
+            setErroWhatsapp(null);
+          }}
+          erro={erroWhatsapp}
         />
         {!form.whatsapp_numero && (
           <Alerta tipo="alerta">Sem número configurado, a cliente precisa escolher o contato ao abrir o WhatsApp.</Alerta>

@@ -6,12 +6,11 @@ import { formatarCentavos } from '../../compartilhado/dinheiro';
 import type { FormaPagamento } from '../../compartilhado/tipos';
 import { ErroApi, criarPedido } from '../api';
 import { Alerta } from '../componentes/Alerta';
-import { AreaTexto, Campo } from '../componentes/Campo';
+import { AreaTexto, Campo, CampoCelular } from '../componentes/Campo';
 import { Botao } from '../componentes/Botao';
 import { EstadoVazio } from '../componentes/Estados';
 import { fotoVencida, nomeTamanhoItem, paraItemPedido, totalCarrinho, useCarrinho } from '../loja/carrinho';
 import { useCatalogo } from '../loja/catalogo';
-import { mascararTelefone } from '../util/telefone';
 
 export const CHAVE_ENVIADO = 'majuprint-enviado';
 
@@ -159,14 +158,13 @@ export default function Finalizar() {
           onChange={(e) => setNome(e.target.value)}
           erro={erros.nome}
         />
-        <Campo
+        <CampoCelular
           rotulo="WhatsApp"
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel-national"
-          placeholder="(91) 91234-5678"
-          value={telefone}
-          onChange={(e) => setTelefone(mascararTelefone(e.target.value))}
+          valor={telefone}
+          aoMudar={(v) => {
+            setTelefone(v);
+            if (erros.telefone) setErros({ ...erros, telefone: undefined });
+          }}
           erro={erros.telefone}
         />
         <AreaTexto
