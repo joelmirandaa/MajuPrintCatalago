@@ -440,32 +440,32 @@ Ao carregar o app, detectar navegador interno (`navigator.userAgent` contém `In
 ### 12.2 Ordem de desenvolvimento (fases)
 
 **Fase 1 — Base e catálogo**
-- [ ] Criar projeto (Vite + React + TS + Tailwind + Hono + Wrangler) no formato "Worker com assets".
-- [ ] Configurar `wrangler.jsonc` com D1 (`DB`), R2 (`FOTOS`), assets e cron.
-- [ ] Migração `0001_inicial.sql` + dados de exemplo (seed) para desenvolvimento.
-- [ ] `GET /api/catalogo`.
-- [ ] Telas: Topo, Catálogo, Modelo (sem upload ainda), Carrinho (gaveta + barra + lateral desktop).
-- [ ] Store do carrinho com persistência.
-- [ ] Tela de saída do Instagram.
+- [x] Criar projeto (Vite + React + TS + Tailwind + Hono + Wrangler) no formato "Worker com assets".
+- [x] Configurar `wrangler.jsonc` com D1 (`DB`), R2 (`FOTOS`), assets e cron.
+- [x] Migração `0001_inicial.sql` + dados de exemplo (seed) para desenvolvimento.
+- [x] `GET /api/catalogo`.
+- [x] Telas: Topo, Catálogo, Modelo (sem upload ainda), Carrinho (gaveta + barra + lateral desktop).
+- [x] Store do carrinho com persistência.
+- [x] Tela de saída do Instagram.
 - ✅ *Pronto quando:* dá para navegar, escolher opções, ver preço e montar o carrinho no celular.
 
 **Fase 2 — Fotos e pedido**
-- [ ] Turnstile + `POST /api/sessao`.
-- [ ] `UploadFoto` com barra de progresso, `POST/DELETE /api/uploads`.
-- [ ] Aviso de qualidade.
-- [ ] Tela Personalizado.
-- [ ] Tela Finalizar + `POST /api/pedidos` + abertura do WhatsApp + tela Enviado.
+- [x] Turnstile + `POST /api/sessao`.
+- [x] `UploadFoto` com barra de progresso, `POST/DELETE /api/uploads`.
+- [x] Aviso de qualidade.
+- [x] Tela Personalizado.
+- [x] Tela Finalizar + `POST /api/pedidos` + abertura do WhatsApp + tela Enviado.
 - ✅ *Pronto quando:* um pedido completo chega no WhatsApp com o link correto e as fotos estão no R2.
 
 **Fase 3 — Painel admin**
-- [ ] Configurar Cloudflare Access + middleware de validação do JWT.
-- [ ] Pedidos (lista, detalhe, download original, baixar todas, status).
-- [ ] Modelos, categorias, tamanhos, papéis, preços, config.
+- [ ] Configurar Cloudflare Access (painel — pendente) + [x] middleware de validação do JWT.
+- [x] Pedidos (lista, detalhe, download original, baixar todas, status).
+- [x] Modelos, categorias, tamanhos, papéis, preços, config.
 - ✅ *Pronto quando:* a equipe gerencia todo o catálogo e os pedidos sem mexer em código.
 
 **Fase 4 — Limpeza e acabamento**
-- [ ] Cron de limpeza (seção 8) + teste local com `wrangler dev --test-scheduled`.
-- [ ] Revisão visual com as cores da logo.
+- [x] Cron de limpeza (seção 8) + teste local (`/cdn-cgi/handler/scheduled` no `npm run dev`).
+- [x] Revisão visual com as cores da logo.
 - [ ] Teste completo no Android e no iPhone, saindo do Instagram.
 - [ ] Deploy de produção.
 
@@ -549,3 +549,9 @@ npx wrangler deploy               # publicar
 | 23/11/2026 | Mensagem do WhatsApp leva o link do pedido no painel; fotos baixadas em qualidade original pelo painel. |
 | 23/11/2026 | Fotos e dados apagados 24 h após marcar como Entregue. |
 | 23/11/2026 | Abrir sempre no navegador externo, nunca no navegador do Instagram. |
+| 23/11/2026 | Projeto criado na raiz do repositório (em vez de uma pasta `catalogo/`). |
+| 23/11/2026 | React 18 + Tailwind 3 (para manter `tailwind.config.ts`) + `@cloudflare/vite-plugin` para rodar o Worker no `vite dev`. |
+| 23/11/2026 | Item personalizado fica **"a orçar"** (não usa a tabela base como estimativa) até a definição da pendência da seção 14. |
+| 23/11/2026 | O token de sessão renovado mantém o mesmo ID por até 24 h, para as fotos do carrinho continuarem válidas após 2 h. |
+| 23/11/2026 | `ADMIN_DEV_LIVRE=1` libera o admin só em `localhost` (desenvolvimento); produção exige o JWT do Access. |
+| 23/11/2026 | Criação do pedido em duas fases (pedido+itens, depois fotos via `INSERT ... SELECT`) para caber no limite de consultas por requisição do D1 gratuito. |
