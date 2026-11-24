@@ -9,7 +9,7 @@ import { Alerta } from '../componentes/Alerta';
 import { AreaTexto, Campo } from '../componentes/Campo';
 import { Botao } from '../componentes/Botao';
 import { EstadoVazio } from '../componentes/Estados';
-import { fotoVencida, paraItemPedido, totalCarrinho, useCarrinho } from '../loja/carrinho';
+import { fotoVencida, nomeTamanhoItem, paraItemPedido, totalCarrinho, useCarrinho } from '../loja/carrinho';
 import { useCatalogo } from '../loja/catalogo';
 import { mascararTelefone } from '../util/telefone';
 
@@ -117,7 +117,7 @@ export default function Finalizar() {
         </h2>
         <ul className="mt-2 divide-y divide-borda">
           {itens.map((item, i) => {
-            const t = dados.tamanhos.find((x) => x.id === item.tamanhoId)?.nome;
+            const t = nomeTamanhoItem(item, dados.tamanhos);
             const p = dados.papeis.find((x) => x.id === item.papelId)?.nome;
             const v = total.linhas[i]?.subtotalCentavos ?? null;
             return (

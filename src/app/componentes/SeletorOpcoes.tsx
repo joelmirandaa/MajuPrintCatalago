@@ -1,5 +1,5 @@
 // Tamanho, papel e quantidade (+/−).
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 import { Minus, Plus } from '@phosphor-icons/react';
 import type { Papel, Tamanho } from '../../compartilhado/tipos';
 
@@ -14,11 +14,14 @@ function GrupoChips({
   opcoes,
   valor,
   aoMudar,
+  extra,
 }: {
   rotulo: string;
   opcoes: OpcaoChip[];
   valor: number | null;
   aoMudar: (id: number) => void;
+  /** Chip adicional ao fim do grupo (ex.: "Tamanho personalizado"). */
+  extra?: ReactNode;
 }) {
   const id = useId();
   return (
@@ -40,6 +43,7 @@ function GrupoChips({
             {o.nome}
           </button>
         ))}
+        {extra}
       </div>
     </fieldset>
   );
@@ -110,12 +114,35 @@ interface Props {
   aoMudarQuantidade: (n: number) => void;
   /** Permite desabilitar papéis sem preço para o tamanho escolhido. */
   papelDisponivel?: (papelId: number) => boolean;
+  /** Habilita a opção "Tamanho personalizado"; `campos` aparece abaixo dos chips quando ela está ativa. */
+  tamanhoPersonalizado?: { ativo: boolean; aoSelecionar: () => void; campos: ReactNode };
 }
 
 export function SeletorOpcoes(p: Props) {
   return (
     <div className="space-y-5">
-      <GrupoChips rotulo="Tamanho" opcoes={p.tamanhos} valor={p.tamanhoId} aoMudar={p.aoMudarTamanho} />
+      <div className="space-y-3">
+        <GrupoChips
+          rotulo="Tamanho"
+          opcoes={p.tamanhos}
+          valor={p.tamanhoPersonalizado?.ativo ? null : p.tamanhoId}
+          aoMudar={p.aoMudarTamanho}
+          extra={
+            p.tamanhoPersonalizado && (
+              <button
+                type="button"
+                role="radio"
+                aria-checked={p.tamanhoPersonalizado.ativo}
+                onClick={p.tamanhoPersonalizado.aoSelecionar}
+                className={`chip ${p.tamanhoPersonalizado.ativo ? 'chip-ativo' : 'border-dashed bg-white hover:border-primaria'}`}
+              >
+                Tamanho personalizado
+              </button>
+            )
+          }
+        />
+        {p.tamanhoPersonalizado?.ativo && p.tamanhoPersonalizado.campos}
+      </div>
       <GrupoChips
         rotulo="Papel"
         opcoes={p.papeis.map((papel) => ({ ...papel, desabilitado: p.papelDisponivel ? !p.papelDisponivel(papel.id) : false }))}

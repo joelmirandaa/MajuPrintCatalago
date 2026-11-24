@@ -1,6 +1,7 @@
 // Criação do pedido: valida fotos da sessão, recalcula preços no servidor e grava tudo no D1.
 import { eq, inArray, isNull, or } from 'drizzle-orm';
 import { uploadsDoItem, type EntradaPedido } from '../../compartilhado/esquemas';
+import { NOME_ITEM_PERSONALIZADO, nomeTamanhoPersonalizado } from '../../compartilhado/personalizado';
 import type { Env } from '../env';
 import { criarDb, schema } from '../db/client';
 import { gerarCodigoPedido } from '../utils/ids';
@@ -67,12 +68,13 @@ export async function criarPedido(env: Env, sessaoId: string, entrada: EntradaPe
   const papelPorId = new Map(paps.filter((p) => p.ativo).map((p) => [p.id, p]));
 
   const itens: ItemCalculado[] = entrada.itens.map((item, indice) => {
-    const tamanho = tamanhoPorId.get(item.tamanhoId);
+    const tamanho = item.tamanhoId === undefined ? undefined : tamanhoPorId.get(item.tamanhoId);
     const papel = papelPorId.get(item.papelId);
-    if (!tamanho || !papel) {
+    if ((item.tamanhoId !== undefined && !tamanho) || !papel) {
       throw new ErroHttp(409, `Item ${indice + 1}: tamanho ou papel não está mais disponível.`);
     }
     if (item.tipo === 'catalogo') {
+      if (!tamanho) throw new ErroHttp(409, `Item ${indice + 1}: tamanho ou papel não está mais disponível.`);
       const modelo = modeloPorId.get(item.modeloId);
       if (!modelo || !modelo.ativo || !modelo.disponivel) {
         throw new ErroHttp(409, `Item ${indice + 1}: o modelo não está mais disponível.`);
@@ -94,11 +96,15 @@ export async function criarPedido(env: Env, sessaoId: string, entrada: EntradaPe
         fotos: [{ uploadId: item.uploadId, funcao: 'cliente' }],
       };
     }
+    // Personalizado: a opção de modelo vai no nome do item; o tamanho pode ser predefinido ou em cm.
+    const tamanhoNome = tamanho
+      ? tamanho.nome
+      : nomeTamanhoPersonalizado(item.larguraCm ?? 0, item.alturaCm ?? 0);
     return {
       tipo: 'personalizado',
       modeloId: null,
-      modeloNome: 'Personalizado',
-      tamanhoNome: tamanho.nome,
+      modeloNome: NOME_ITEM_PERSONALIZADO[item.opcaoModelo],
+      tamanhoNome,
       papelNome: papel.nome,
       quantidade: item.quantidade,
       precoUnitCentavos: null,
@@ -106,7 +112,7 @@ export async function criarPedido(env: Env, sessaoId: string, entrada: EntradaPe
       descricao: item.descricao || null,
       fotos: [
         { uploadId: item.uploadIdCliente, funcao: 'cliente' },
-        { uploadId: item.uploadIdReferencia, funcao: 'referencia' },
+        ...(item.uploadIdReferencia ? [{ uploadId: item.uploadIdReferencia, funcao: 'referencia' as const }] : []),
       ],
     };
   });

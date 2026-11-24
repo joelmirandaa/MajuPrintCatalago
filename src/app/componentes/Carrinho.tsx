@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ImageSquare, ShoppingBag, Trash, WarningCircle } from '@phosphor-icons/react';
 import { formatarCentavos } from '../../compartilhado/dinheiro';
 import { removerFoto } from '../api';
-import { fotoVencida, totalCarrinho, useCarrinho, type ItemCarrinho } from '../loja/carrinho';
+import { fotoVencida, nomeTamanhoItem, totalCarrinho, useCarrinho, type ItemCarrinho } from '../loja/carrinho';
 import { selecionarPrecos, useCatalogo } from '../loja/catalogo';
 import { Botao } from './Botao';
 import { Modal } from './Modal';
@@ -13,7 +13,7 @@ function LinhaItem({ item, valor }: { item: ItemCarrinho; valor: number | null }
   const catalogo = useCatalogo((s) => s.dados);
   const remover = useCarrinho((s) => s.remover);
   const alterarQuantidade = useCarrinho((s) => s.alterarQuantidade);
-  const tamanho = catalogo?.tamanhos.find((t) => t.id === item.tamanhoId)?.nome ?? '—';
+  const tamanho = nomeTamanhoItem(item, catalogo?.tamanhos);
   const papel = catalogo?.papeis.find((p) => p.id === item.papelId)?.nome ?? '—';
   const vencida = fotoVencida(item);
 

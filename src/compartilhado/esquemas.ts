@@ -1,5 +1,6 @@
 // Esquemas Zod de toda entrada da API (estrutura.md, seção 11: limites).
 import { z } from 'zod';
+import { LIMITE_CM, mensagemLimite, OPCOES_MODELO } from './personalizado';
 
 export const LIMITES = {
   bytesPorFoto: 25 * 1024 * 1024,
@@ -28,21 +29,50 @@ export const esquemaItemCatalogo = z.object({
   uploadId,
 });
 
-export const esquemaItemPersonalizado = z.object({
-  tipo: z.literal('personalizado'),
-  tamanhoId: id,
-  papelId: id,
-  quantidade: z.number().int().min(1).max(LIMITES.quantidadeMaxima),
-  uploadIdCliente: uploadId,
-  uploadIdReferencia: uploadId,
-  descricao: texto(1000).optional(),
-});
+const medidaCm = (eixo: keyof typeof LIMITE_CM) =>
+  z
+    .number({ message: 'Informe a medida em centímetros' })
+    .positive('A medida deve ser maior que zero')
+    .max(LIMITE_CM[eixo], mensagemLimite(eixo));
+
+/**
+ * Item "Modelo personalizado". O tamanho é um dos predefinidos (`tamanhoId`) OU medidas livres em cm
+ * (`larguraCm` ≤ 21 + `alturaCm` ≤ 29,7). `opcaoModelo` diz se a cliente manda referência ou só a própria foto.
+ */
+export const esquemaItemPersonalizado = z
+  .object({
+    tipo: z.literal('personalizado'),
+    opcaoModelo: z.enum(OPCOES_MODELO, { message: 'Escolha se vai enviar um modelo de referência' }),
+    tamanhoId: id.optional(),
+    larguraCm: medidaCm('largura').optional(),
+    alturaCm: medidaCm('altura').optional(),
+    papelId: id,
+    quantidade: z.number().int().min(1).max(LIMITES.quantidadeMaxima),
+    uploadIdCliente: uploadId,
+    uploadIdReferencia: uploadId.optional(),
+    descricao: texto(1000).optional(),
+  })
+  .superRefine((item, ctx) => {
+    const temMedidas = item.larguraCm !== undefined || item.alturaCm !== undefined;
+    if (item.tamanhoId !== undefined && temMedidas) {
+      ctx.addIssue({ code: 'custom', message: 'Escolha um tamanho predefinido ou o tamanho personalizado, não os dois' });
+    } else if (item.tamanhoId === undefined && (item.larguraCm === undefined || item.alturaCm === undefined)) {
+      ctx.addIssue({ code: 'custom', message: 'Informe a largura e a altura em centímetros' });
+    }
+    if (item.opcaoModelo === 'referencia' && item.uploadIdReferencia === undefined) {
+      ctx.addIssue({ code: 'custom', message: 'Envie a foto do modelo de referência' });
+    }
+    if (item.opcaoModelo === 'apenas_foto' && item.uploadIdReferencia !== undefined) {
+      ctx.addIssue({ code: 'custom', message: 'Com "Apenas minha foto" não há foto de referência' });
+    }
+  });
 
 export const esquemaItemPedido = z.discriminatedUnion('tipo', [esquemaItemCatalogo, esquemaItemPersonalizado]);
 
 /** IDs de upload usados por um item, na ordem (cliente, referência). */
 export function uploadsDoItem(item: z.infer<typeof esquemaItemPedido>): string[] {
-  return item.tipo === 'catalogo' ? [item.uploadId] : [item.uploadIdCliente, item.uploadIdReferencia];
+  if (item.tipo === 'catalogo') return [item.uploadId];
+  return item.uploadIdReferencia ? [item.uploadIdCliente, item.uploadIdReferencia] : [item.uploadIdCliente];
 }
 
 export const esquemaTelefone = z

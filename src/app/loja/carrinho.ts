@@ -3,7 +3,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { calcularTotal, type LinhaCalculo } from '../../compartilhado/calculo';
 import type { EntradaItemPedido } from '../../compartilhado/esquemas';
-import type { Preco } from '../../compartilhado/tipos';
+import { nomeTamanhoPersonalizado, type OpcaoModelo } from '../../compartilhado/personalizado';
+import type { Preco, Tamanho } from '../../compartilhado/tipos';
 
 /** Fotos não vinculadas a pedido são apagadas pelo servidor após 24 h; avisamos antes disso. */
 export const VALIDADE_FOTO_MS = 23 * 60 * 60 * 1000;
@@ -22,7 +23,11 @@ export interface ItemCarrinho {
   tipo: 'catalogo' | 'personalizado';
   modeloId: number | null;
   modeloNome: string;
-  tamanhoId: number;
+  /** null quando a cliente informou um tamanho personalizado (ver `medidas`). */
+  tamanhoId: number | null;
+  medidas?: { larguraCm: number; alturaCm: number };
+  /** Só em itens personalizados. Itens salvos antes dessa opção existir são deduzidos pela referência. */
+  opcaoModelo?: OpcaoModelo;
   papelId: number;
   quantidade: number;
   foto: FotoEnviada;
@@ -108,7 +113,7 @@ export function paraItemPedido(item: ItemCarrinho): EntradaItemPedido {
     return {
       tipo: 'catalogo',
       modeloId: item.modeloId ?? 0,
-      tamanhoId: item.tamanhoId,
+      tamanhoId: item.tamanhoId ?? 0,
       papelId: item.papelId,
       quantidade: item.quantidade,
       uploadId: item.foto.uploadId,
@@ -116,11 +121,20 @@ export function paraItemPedido(item: ItemCarrinho): EntradaItemPedido {
   }
   return {
     tipo: 'personalizado',
-    tamanhoId: item.tamanhoId,
+    opcaoModelo: item.opcaoModelo ?? (item.fotoReferencia ? 'referencia' : 'apenas_foto'),
+    ...(item.tamanhoId !== null
+      ? { tamanhoId: item.tamanhoId }
+      : { larguraCm: item.medidas?.larguraCm, alturaCm: item.medidas?.alturaCm }),
     papelId: item.papelId,
     quantidade: item.quantidade,
     uploadIdCliente: item.foto.uploadId,
-    uploadIdReferencia: item.fotoReferencia?.uploadId ?? '',
+    uploadIdReferencia: item.fotoReferencia?.uploadId,
     descricao: item.descricao,
   };
+}
+
+/** Nome do tamanho para exibir no carrinho e no resumo (predefinido ou personalizado em cm). */
+export function nomeTamanhoItem(item: ItemCarrinho, tamanhos: readonly Tamanho[] | undefined): string {
+  if (item.medidas) return nomeTamanhoPersonalizado(item.medidas.larguraCm, item.medidas.alturaCm);
+  return tamanhos?.find((t) => t.id === item.tamanhoId)?.nome ?? '—';
 }

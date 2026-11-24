@@ -71,7 +71,8 @@ const u1 = await enviarFoto(token);
 const u2 = await enviarFoto(token, 'eu.webp');
 const u3 = await enviarFoto(token, 'referencia.webp');
 const u4 = await enviarFoto(token, 'desisti.webp');
-verificar([u1, u2, u3, u4].every((u) => u.status === 201 && u.corpo.uploadId), 'quatro fotos enviadas (201)');
+const u5 = await enviarFoto(token, 'sob-medida.webp');
+verificar([u1, u2, u3, u4, u5].every((u) => u.status === 201 && u.corpo.uploadId), 'cinco fotos enviadas (201)');
 const del = await api(`/api/uploads/${u4.corpo.uploadId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
 verificar(del.status === 200, 'DELETE /api/uploads/:id remove foto');
 
@@ -82,6 +83,7 @@ const cliente = { nome: 'Cliente Teste', telefone: '(91) 91234-5678', endereco: 
 const itemCatalogo = { tipo: 'catalogo', modeloId: modelo.id, tamanhoId: t1.id, papelId: p1.id, quantidade: 3, uploadId: u1.corpo.uploadId };
 const itemPers = {
   tipo: 'personalizado',
+  opcaoModelo: 'referencia',
   tamanhoId: t1.id,
   papelId: p1.id,
   quantidade: 1,
@@ -89,6 +91,28 @@ const itemPers = {
   uploadIdReferencia: u3.corpo.uploadId,
   descricao: 'fundo rosa',
 };
+// Personalizado "Apenas minha foto", com tamanho em cm.
+const itemSobMedida = {
+  tipo: 'personalizado',
+  opcaoModelo: 'apenas_foto',
+  larguraCm: 15,
+  alturaCm: 20.5,
+  papelId: p1.id,
+  quantidade: 2,
+  uploadIdCliente: u5.corpo.uploadId,
+};
+const medidaInvalida = await api('/api/pedidos', json({ cliente, itens: [{ ...itemSobMedida, larguraCm: -1 }] }, token));
+verificar(medidaInvalida.status === 400, 'medida negativa é recusada (400)');
+const semMedidas = await api('/api/pedidos', json({ cliente, itens: [{ ...itemSobMedida, alturaCm: undefined }] }, token));
+verificar(semMedidas.status === 400, 'tamanho personalizado sem altura é recusado (400)');
+for (const [l, a] of [[21.1, 20], [20, 29.8], [29.7, 21]]) {
+  const r = await api('/api/pedidos', json({ cliente, itens: [{ ...itemSobMedida, larguraCm: l, alturaCm: a }] }, token));
+  verificar(r.status === 400, `${l} × ${a} cm excede 21 × 29,7 cm e é recusado (400)`);
+}
+const semOpcao = await api('/api/pedidos', json({ cliente, itens: [{ ...itemSobMedida, opcaoModelo: undefined }] }, token));
+verificar(semOpcao.status === 400, 'personalizado sem a opção de modelo é recusado (400)');
+const refSemImagem = await api('/api/pedidos', json({ cliente, itens: [{ ...itemSobMedida, opcaoModelo: 'referencia' }] }, token));
+verificar(refSemImagem.status === 400, '"Enviar modelo de referência" sem a imagem é recusado (400)');
 const deOutraSessao = await api('/api/pedidos', json({ cliente, itens: [itemCatalogo] }, outra.corpo.token));
 verificar(deOutraSessao.status === 409, 'foto de outra sessão é recusada (409)');
 const comEsgotado = await api('/api/pedidos', json({ cliente, itens: [{ ...itemCatalogo, modeloId: esgotado?.id ?? 99999 }] }, token));
@@ -96,12 +120,13 @@ verificar(comEsgotado.status === 409, 'modelo esgotado é recusado (409)');
 const invalido = await api('/api/pedidos', json({ cliente: { ...cliente, telefone: '12' }, itens: [itemCatalogo] }, token));
 verificar(invalido.status === 400, 'telefone inválido é recusado (400)');
 
-const ped = await api('/api/pedidos', json({ cliente, itens: [itemCatalogo, itemPers] }, token));
+const ped = await api('/api/pedidos', json({ cliente, itens: [itemCatalogo, itemPers, itemSobMedida] }, token));
 verificar(ped.status === 201 && /^[A-Z0-9]{4}-[A-Z0-9]{3}$/.test(ped.corpo.codigo), 'POST /api/pedidos cria pedido', ped.corpo);
 const codigo = ped.corpo.codigo;
 const mensagem = decodeURIComponent(ped.corpo.linkWhatsapp.split('?text=')[1] ?? '');
 verificar(mensagem.includes(`#${codigo}`) && mensagem.includes('/admin/pedidos/'), 'link do WhatsApp contém código e link do painel');
 verificar(mensagem.includes('a orçar'), 'item personalizado aparece como "a orçar"');
+verificar(mensagem.includes('Tamanho personalizado: 15 × 20,5 cm'), 'mensagem do WhatsApp traz as medidas em cm');
 const repetido = await api('/api/pedidos', json({ cliente, itens: [itemCatalogo] }, token));
 verificar(repetido.status === 409, 'fotos já usadas não podem ser reaproveitadas (409)');
 
@@ -112,7 +137,17 @@ const det = await api(`/api/admin/pedidos/${codigo}`);
 const precoEsperado = cat.corpo.precos.find((p) => p.modeloId === modelo.id && p.tamanhoId === t1.id && p.papelId === p1.id)
   ?? cat.corpo.precos.find((p) => p.modeloId === null && p.tamanhoId === t1.id && p.papelId === p1.id);
 verificar(det.corpo.subtotalCentavos === precoEsperado.valorCentavos * 3, 'subtotal recalculado no servidor');
-verificar(det.corpo.itens.length === 2 && det.corpo.itens[1].fotos.length === 2, 'itens e fotos gravados');
+verificar(det.corpo.itens.length === 3 && det.corpo.itens[1].fotos.length === 2, 'itens e fotos gravados');
+const sobMedida = det.corpo.itens[2];
+verificar(
+  sobMedida?.tamanhoNome === 'Tamanho personalizado: 15 × 20,5 cm' &&
+    sobMedida.modeloNome === 'Personalizado — apenas a foto da cliente' &&
+    det.corpo.itens[1].modeloNome === 'Personalizado — com modelo de referência' &&
+    sobMedida.subtotalCentavos === null &&
+    sobMedida.fotos.length === 1,
+  'painel mostra a opção de modelo, as medidas em cm e "a orçar"',
+  sobMedida,
+);
 const fotoId = det.corpo.itens[0].fotos[0].id;
 const baixada = await api(`/api/admin/fotos/${fotoId}`);
 verificar(

@@ -45,7 +45,8 @@ export function precoAPartirDe(
 export interface LinhaCalculo {
   tipo: 'catalogo' | 'personalizado';
   modeloId: number | null;
-  tamanhoId: number;
+  /** null = tamanho personalizado (em cm), só existe em itens personalizados. */
+  tamanhoId: number | null;
   papelId: number;
   quantidade: number;
 }
@@ -57,7 +58,7 @@ export interface ResultadoLinha {
 
 /** Item personalizado é sempre "a orçar" (null). Item de catálogo sem preço também retorna null. */
 export function calcularLinha(precos: readonly Preco[], linha: LinhaCalculo): ResultadoLinha {
-  if (linha.tipo === 'personalizado') return { precoUnitCentavos: null, subtotalCentavos: null };
+  if (linha.tipo === 'personalizado' || linha.tamanhoId === null) return { precoUnitCentavos: null, subtotalCentavos: null };
   const unit = precoUnitario(precos, linha.modeloId, linha.tamanhoId, linha.papelId);
   if (unit === null) return { precoUnitCentavos: null, subtotalCentavos: null };
   return { precoUnitCentavos: unit, subtotalCentavos: unit * linha.quantidade };
