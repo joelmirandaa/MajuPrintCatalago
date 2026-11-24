@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-fundo font-corpo text-base leading-[1.6] text-texto antialiased;
+  }
+  h1, h2, h3, h4 {
+    @apply font-titulo font-semibold leading-[1.2] text-secundaria;
+  }
+  h1 { @apply text-[30px] md:text-[40px]; }
+  h2 { @apply text-2xl md:text-[32px]; }
+  h3 { @apply text-xl md:text-2xl; }
+  h4 { @apply text-lg md:text-xl; }
+  :focus-visible {
+    outline: 3px solid #C2410C;
+    outline-offset: 2px;
+  }
+  /* 16 px nos campos para o iPhone não dar zoom */
+  input, select, textarea { font-size: 16px; }
+}
+
+@layer components {
+  .campo {
+    @apply block h-12 w-full rounded-md border-[1.5px] border-borda-campo bg-white px-4 text-texto
+      placeholder:text-texto-suave transition-[border-color,box-shadow] duration-200
+      focus:border-2 focus:border-primaria focus:shadow-foco focus:outline-none;
+  }
+  .campo-erro {
+    @apply border-erro focus:border-erro;
+  }
+  .cartao {
+    @apply rounded-lg bg-white shadow-cartao;
+  }
+  .skeleton {
+    background: linear-gradient(90deg, #F5E6D8 25%, #FBEFE3 50%, #F5E6D8 75%);
+    background-size: 200% 100%;
+    @apply animate-brilho rounded-md;
+  }
+  .chip {
+    @apply inline-flex h-11 shrink-0 items-center rounded-pilula border-2 border-borda px-4 font-bold
+      text-secundaria transition-colors duration-200;
+  }
+  .chip-ativo {
+    @apply border-primaria bg-primaria text-secundaria;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-property: opacity !important;
+    scroll-behavior: auto !important;
+  }
+}
