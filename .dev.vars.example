@@ -1,0 +1,7 @@
+# Copie para .dev.vars (nunca commitar o .dev.vars).
+SESSAO_SEGREDO=troque-por-um-segredo-longo-e-aleatorio
+# Segredo de teste do Turnstile (sempre aprova)
+TURNSTILE_SECRET=1x0000000000000000000000000000000AA
+ACCESS_AUD=
+# Somente em desenvolvimento local: libera o painel admin sem Cloudflare Access.
+ADMIN_DEV_LIVRE=1
